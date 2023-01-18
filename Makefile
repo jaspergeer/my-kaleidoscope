@@ -9,4 +9,4 @@ main: driver.o parser.o error.o ast.o codegen.o
 	${CC} ${CFLAGS} ${LLVMFLAGS} $^ -o $@
 
 clean:
-	rm *.o main
+	rm -r *.o main *.dSYM
