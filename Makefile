@@ -1,9 +1,12 @@
-CPP=clang++
-CPPFLAGS=`llvm-config --cxxflags`
-INCLUDES = parser.h lexer.h
+CC = llvm-g++ -stdlib=libc++ -std=c++14
+CFLAGS = -g -O3 -I llvm/include -I llvm/build/include -I ./
+LLVMFLAGS = `llvm-config --cxxflags --ldflags --system-libs --libs all`
 
 %.o: %.cpp
-	$(CPP) -c $^ $(CPPFLAGS)
+	$(CC) -c $(CPPFLAGS) $< -o $@
+
+main: driver.o parser.o error.o ast.o codegen.o
+	${CC} ${CFLAGS} ${LLVMFLAGS} $^ -o $@
 
 clean:
-	rm *.o *.h.gc
+	rm *.o

@@ -1,3 +1,6 @@
+#ifndef VISITOR_H
+#define VISITOR_H
+
 #include "ast.h"
 #include <string>
 
@@ -10,3 +13,5 @@ class ASTVisitor {
         virtual void visitPrototype(std::string name, const std::vector<std::string> &args) = 0;
         virtual void visitFunction(PrototypeAST *proto, ExprAST *body) = 0;
 };
+
+#endif

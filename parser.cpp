@@ -4,21 +4,9 @@
 
 #include "ast.h"
 #include "error.h"
-
+#include "parser.h"
 
 // Lexer
-
-enum Token {
-    tok_eof = -1,
-
-    // commands
-    tok_def = -2,
-    tok_extern = -3,
-
-    // primary
-    tok_identifier = -4,
-    tok_number = -5
-};
 
 static std::string IdentifierStr;
 static double NumVal;
@@ -74,10 +62,9 @@ static int gettok() {
 
 // Parser
 
-static int CurTok;
-static std::map<char, int> BinopPrecedence;
+int CurTok;
 
-static int getNextToken() {
+int getNextToken() {
     return CurTok = gettok();
 }
 
@@ -85,10 +72,17 @@ static int getTokPrecedence() {
     if (!isascii(CurTok))
         return -1;
     
-    int tokPrec = BinopPrecedence[CurTok];
-    if (tokPrec <= 0)
-        return -1;
-    return tokPrec;
+    switch(CurTok) {
+        case '<':
+            return 10;
+        case '+':
+            return 20;
+        case '-':
+            return 20;
+        case '*':
+            return 40;
+    }
+    return -1;
 }
 
 std::unique_ptr<ExprAST> logErrorE(const char *str) {
@@ -102,16 +96,16 @@ std::unique_ptr<PrototypeAST> logErrorP(const char *str) {
 }
 
 /// numberexpr ::= number
-static std::unique_ptr<ExprAST> parseNumberExpr() {
+std::unique_ptr<ExprAST> parseNumberExpr() {
     auto result = std::make_unique<NumberExprAST>(NumVal);
     getNextToken();
     return std::move(result);
 }
 
-static std::unique_ptr<ExprAST> parseExpression();
+std::unique_ptr<ExprAST> parseExpression();
 
 /// parenexpr ::= '(' expression ')'
-static std::unique_ptr<ExprAST> parseParenExpr() {
+std::unique_ptr<ExprAST> parseParenExpr() {
     getNextToken();
     auto v = parseExpression();
     if (!v)
@@ -125,7 +119,7 @@ static std::unique_ptr<ExprAST> parseParenExpr() {
 /// identifierexpr
 ///   ::= identifier
 ///   ::= identifier '(' expression* ')'
-static std::unique_ptr<ExprAST> parseIdentifierExpr() {
+std::unique_ptr<ExprAST> parseIdentifierExpr() {
     std::string idName = IdentifierStr;
 
     getNextToken();
@@ -160,10 +154,9 @@ static std::unique_ptr<ExprAST> parseIdentifierExpr() {
 ///   ::= identifierexpr
 ///   ::= numberexpr
 ///   ::= parenexpr
-static std::unique_ptr<ExprAST> parsePrimary() {
+std::unique_ptr<ExprAST> parsePrimary() {
     switch(CurTok) {
         default:
-            std::cout << CurTok << std::endl;
             return logErrorE("unknown token when expecting an expression");
         case tok_identifier:
             return parseIdentifierExpr();
@@ -202,7 +195,7 @@ static std::unique_ptr<ExprAST> parseBinOpRHS(int exprPrec, std::unique_ptr<Expr
 
 /// expression
 ///   ::= primary binoprhs
-static std::unique_ptr<ExprAST> parseExpression() {
+std::unique_ptr<ExprAST> parseExpression() {
     auto lhs = parsePrimary();
     if (!lhs)
         return nullptr;
@@ -213,7 +206,7 @@ static std::unique_ptr<ExprAST> parseExpression() {
 
 /// prototype
 ///   ::= id '(' id* ')'
-static std::unique_ptr<PrototypeAST> parsePrototype() {
+std::unique_ptr<PrototypeAST> parsePrototype() {
     if (CurTok != tok_identifier)
         return logErrorP("Expected function name in prototype");
 
@@ -238,7 +231,7 @@ static std::unique_ptr<PrototypeAST> parsePrototype() {
 }
 
 /// definition ::= 'def' prototype expression
-static std::unique_ptr<FunctionAST> parseDefinition() {
+std::unique_ptr<FunctionAST> parseDefinition() {
     getNextToken();
     auto proto = parsePrototype();
     if (!proto)
@@ -250,13 +243,13 @@ static std::unique_ptr<FunctionAST> parseDefinition() {
 }
 
 /// external ::= 'extern' prototype
-static std::unique_ptr<PrototypeAST> parseExtern() {
+std::unique_ptr<PrototypeAST> parseExtern() {
     getNextToken();
     return parsePrototype();
 }
 
 /// toplevelexpr ::= expression
-static std::unique_ptr<FunctionAST> parseTopLevelExpr() {
+std::unique_ptr<FunctionAST> parseTopLevelExpr() {
     if (auto e = parseExpression()) {
         auto proto = std::make_unique<PrototypeAST>("__anon_expr", std::vector<std::string>());
         return std::make_unique<FunctionAST>(std::move(proto), std::move(e));
