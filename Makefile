@@ -5,7 +5,8 @@ LLVMFLAGS = `llvm-config --cxxflags --ldflags --system-libs --libs all`
 %.o: %.cpp
 	$(CC) -c $(CPPFLAGS) $< -o $@
 
-main: driver.o parser.o error.o ast.o codegen.o
+# ha ha
+klang: driver.o parser.o error.o ast.o codegen.o
 	${CC} ${CFLAGS} ${LLVMFLAGS} $^ -o $@
 
 clean:
